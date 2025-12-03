@@ -1,6 +1,21 @@
 #!/bin/bash
 
+# 设置Wine的中文环境变量
+export LANG=zh_CN.UTF-8
+export LANGUAGE=zh_CN.UTF-8
+export LC_ALL=zh_CN.UTF-8
+export WINEDEBUG=-all
+export WINEARCH=win64
+export WINEPREFIX=~/.wine
+
 VNC_PASSWD_FILE="/root/.vnc/passwd"
+
+# 初始化wine环境并配置中文支持
+if [ ! -d "$WINEPREFIX" ]; then
+    echo "初始化Wine环境..."
+    wineboot --init
+    winetricks -q settings locale zh-CN
+fi
 
 # 如果传入了 VNC_PASSWORD 环境变量，则更新密码
 if [[ -n "$VNC_PASSWORD" ]]; then
