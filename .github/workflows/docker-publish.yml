@@ -11,62 +11,33 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}  # GitHub Container Registry 镜像名称 (格式: 用户名/仓库名)
+  IMAGE_NAME: wine-novnc-docker  # 本地镜像名称
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      contents: write
 
     steps:
       # 检出仓库代码
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 设置 Docker Buildx 以支持多平台构建
-      - name: Set up Docker Buildx
+      # 设置 Docker
+      - name: Set up Docker
         uses: docker/setup-buildx-action@v3
-
-      # 登录 GitHub Container Registry（跳过 PR 构建）
-      - name: Log into GitHub Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # 提取 Docker 镜像的元数据（标签和标签）
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-      # 使用 Buildx 构建并推送 Docker 镜像
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       # 仅当标签推送时，构建并上传镜像到 GitHub Release
       - name: Build Docker image for Release
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           # 构建镜像
-          docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} .
+          docker build -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} .
           
           # 保存镜像为 tar 文件
           IMAGE_TAR_NAME="wine-novnc-docker-${{ github.ref_name }}.tar"
-          docker save -o $IMAGE_TAR_NAME ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          docker save -o $IMAGE_TAR_NAME ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
           
           # 显示文件信息
           ls -lh $IMAGE_TAR_NAME
@@ -84,7 +55,7 @@ jobs:
             ## 下载镜像
             1. 下载 `wine-novnc-docker-${{ github.ref_name }}.tar` 文件
             2. 导入到 Docker：`docker load -i wine-novnc-docker-${{ github.ref_name }}.tar`
-            3. 运行镜像：`docker run -p 6080:6080 -p 5901:5901 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}`
+            3. 运行镜像：`docker run -p 6080:6080 -p 5901:5901 ${{ env.IMAGE_NAME }}:${{ github.ref_name }}`
           files: ${{ env.IMAGE_TAR_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
