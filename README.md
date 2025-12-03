@@ -29,20 +29,44 @@ cd wine-novnc-docker
 docker build -t ghcr.io/p0ise/wine-novnc-docker .
 ```
 
-### 配置 GHCR 镜像源加速器
+### 配置 GHCR 镜像加速
 
-如果拉取 GHCR 镜像速度较慢，可以配置 Docker 镜像源加速器。以下是配置方法：
+如果拉取 GHCR 镜像速度较慢，可以配置以下加速方案：
 
-1. 打开或创建 Docker 配置文件：
+#### 1. GHCR 专用直链代理（推荐）
 
-   - **Linux/macOS**：`~/.docker/daemon.json`
-   - **Windows**：`C:\ProgramData\Docker\config\daemon.json`
-
-2. 添加以下配置内容（使用阿里云或其他国内镜像源）：
+使用专门针对 GHCR 的直链代理，这些代理实时转发请求，无需等待镜像同步：
 
 ```json
 {
   "registry-mirrors": [
+    "https://registry.docker-cn.com",
+    "https://hub-mirror.c.163.com",
+    "https://mirror.baidubce.com"
+  ],
+  "registry-endpoints": {
+    "ghcr.io": {
+      "endpoint": [
+        "https://ghcr.dockerproxy.com",
+        "https://ghcr-cdn.dockerproxy.com",
+        "https://ghcr.io"
+      ]
+    }
+  },
+  "insecure-registries": [],
+  "experimental": false,
+  "debug": false
+}
+```
+
+#### 2. 旧版 Docker 配置（兼容方案）
+
+对于不支持 `registry-endpoints` 的旧版 Docker，可以使用 `registry-mirrors` 结合专用代理：
+
+```json
+{
+  "registry-mirrors": [
+    "https://ghcr.dockerproxy.com",
     "https://registry.docker-cn.com",
     "https://hub-mirror.c.163.com",
     "https://mirror.baidubce.com"
@@ -53,11 +77,29 @@ docker build -t ghcr.io/p0ise/wine-novnc-docker .
 }
 ```
 
-3. 重启 Docker 服务：
+### 配置说明
 
+1. **打开或创建 Docker 配置文件**：
+   - **Linux/macOS**：`~/.docker/daemon.json`
+   - **Windows**：`C:\ProgramData\Docker\config\daemon.json`
+
+2. **添加上述配置内容**，选择适合您 Docker 版本的配置方案
+
+3. **重启 Docker 服务**：
    - **Linux**：`sudo systemctl restart docker`
    - **macOS**：在 Docker Desktop 中点击 "Restart"
    - **Windows**：在 Docker Desktop 中点击 "Restart"
+
+### 关于 GHCR 代理
+
+- **GHCR 专用代理**：
+  - `https://ghcr.dockerproxy.com` - 实时转发 GHCR 请求的直链代理
+  - `https://ghcr-cdn.dockerproxy.com` - CDN 加速的 GHCR 代理
+  - 这些代理会直接转发您的请求到 GHCR，无需等待镜像同步
+
+- **普通镜像源**：
+  - 如阿里云、网易云等，主要加速 Docker Hub 镜像
+  - 对 GHCR 镜像可能加速效果有限，因为需要定时同步
 
 ### 注意事项
 
