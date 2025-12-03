@@ -39,7 +39,10 @@ ENV WINEARCH=win64 \
 # 复制并执行下载 Gecko 和 Mono 的脚本
 COPY download_gecko_and_mono.sh /root/download_gecko_and_mono.sh
 RUN chmod +x /root/download_gecko_and_mono.sh && \
-    /root/download_gecko_and_mono.sh "$(wine --version | sed -E 's/^wine-//')" && \
+    # 使用 apt-cache 而不是直接运行 wine 获取版本号
+    WINE_VERSION=$(apt-cache policy winehq-stable | grep -oP 'Installed: \K[^\s]+' | sed -E 's/^[0-9]:([0-9]+\.[0-9]+\.[0-9]+).*/\1/') && \
+    echo "Detected Wine version: $WINE_VERSION" && \
+    /root/download_gecko_and_mono.sh "$WINE_VERSION" && \
     rm -f /root/download_gecko_and_mono.sh
 
 # 安装 noVNC 和 websockify，设置 noVNC 的默认页面
