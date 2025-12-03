@@ -56,3 +56,35 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # 仅当标签推送时，构建并上传镜像到 GitHub Release
+      - name: Build Docker image for Release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          # 构建镜像
+          docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} .
+          
+          # 保存镜像为 tar 文件
+          IMAGE_TAR_NAME="wine-novnc-docker-${{ github.ref_name }}.tar"
+          docker save -o $IMAGE_TAR_NAME ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          
+          # 显示文件信息
+          ls -lh $IMAGE_TAR_NAME
+          echo "IMAGE_TAR_NAME=$IMAGE_TAR_NAME" >> $GITHUB_ENV
+
+      # 创建 GitHub Release 并上传镜像文件
+      - name: Create Release and upload Docker image
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          body: |
+            Docker 镜像发布 ${{ github.ref_name }}
+            
+            ## 下载镜像
+            1. 下载 `wine-novnc-docker-${{ github.ref_name }}.tar` 文件
+            2. 导入到 Docker：`docker load -i wine-novnc-docker-${{ github.ref_name }}.tar`
+            3. 运行镜像：`docker run -p 6080:6080 -p 5901:5901 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}`
+          files: ${{ env.IMAGE_TAR_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
