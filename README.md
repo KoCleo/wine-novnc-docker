@@ -15,10 +15,10 @@
 
 ### 获取镜像
 
-从 Docker Hub 拉取基础镜像：
+从 GitHub Container Registry (GHCR) 拉取基础镜像：
 
 ```bash
-docker pull invelop/wine-novnc:latest
+docker pull ghcr.io/p0ise/wine-novnc-docker:latest
 ```
 
 或者克隆本仓库并构建镜像：
@@ -26,8 +26,44 @@ docker pull invelop/wine-novnc:latest
 ```bash
 git clone https://github.com/p0ise/wine-novnc-docker.git
 cd wine-novnc-docker
-docker build -t invelop/wine-novnc .
+docker build -t ghcr.io/p0ise/wine-novnc-docker .
 ```
+
+### 配置 GHCR 镜像源加速器
+
+如果拉取 GHCR 镜像速度较慢，可以配置 Docker 镜像源加速器。以下是配置方法：
+
+1. 打开或创建 Docker 配置文件：
+
+   - **Linux/macOS**：`~/.docker/daemon.json`
+   - **Windows**：`C:\ProgramData\Docker\config\daemon.json`
+
+2. 添加以下配置内容（使用阿里云或其他国内镜像源）：
+
+```json
+{
+  "registry-mirrors": [
+    "https://registry.docker-cn.com",
+    "https://hub-mirror.c.163.com",
+    "https://mirror.baidubce.com"
+  ],
+  "insecure-registries": [],
+  "experimental": false,
+  "debug": false
+}
+```
+
+3. 重启 Docker 服务：
+
+   - **Linux**：`sudo systemctl restart docker`
+   - **macOS**：在 Docker Desktop 中点击 "Restart"
+   - **Windows**：在 Docker Desktop 中点击 "Restart"
+
+### 注意事项
+
+- 本项目的镜像已从 Docker Hub 迁移到 GitHub Container Registry (GHCR)
+- 镜像地址为：`ghcr.io/p0ise/wine-novnc-docker:latest`
+- 所有示例命令中的镜像名称已更新为新的 GHCR 地址
 
 ### 运行容器并设置 VNC 密码
 
