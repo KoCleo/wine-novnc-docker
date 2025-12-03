@@ -8,6 +8,7 @@ on:
     tags: [ 'v*.*.*' ]  # 以版本号标签发布
   pull_request:
     branches: [ "main", "develop" ]
+  workflow_dispatch:
 
 env:
   REGISTRY: docker.io
