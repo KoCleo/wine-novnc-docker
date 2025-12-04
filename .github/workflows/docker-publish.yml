@@ -11,51 +11,48 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: wine-novnc-docker  # 本地镜像名称
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}  # GitHub Container Registry 镜像名称
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+      packages: write
 
     steps:
       # 检出仓库代码
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 设置 Docker
-      - name: Set up Docker
+      # 设置 Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 仅当标签推送时，构建并上传镜像到 GitHub Release
-      - name: Build Docker image for Release
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          # 构建镜像
-          docker build -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} .
-          
-          # 保存镜像为 tar 文件
-          IMAGE_TAR_NAME="wine-novnc-docker-${{ github.ref_name }}.tar"
-          docker save -o $IMAGE_TAR_NAME ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
-          
-          # 显示文件信息
-          ls -lh $IMAGE_TAR_NAME
-          echo "IMAGE_TAR_NAME=$IMAGE_TAR_NAME" >> $GITHUB_ENV
-
-      # 创建 GitHub Release 并上传镜像文件
-      - name: Create Release and upload Docker image
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+      # 登录 GitHub Container Registry（跳过 PR 构建）
+      - name: Log into GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
         with:
-          name: Release ${{ github.ref_name }}
-          body: |
-            Docker 镜像发布 ${{ github.ref_name }}
-            
-            ## 下载镜像
-            1. 下载 `wine-novnc-docker-${{ github.ref_name }}.tar` 文件
-            2. 导入到 Docker：`docker load -i wine-novnc-docker-${{ github.ref_name }}.tar`
-            3. 运行镜像：`docker run -p 6080:6080 -p 5901:5901 ${{ env.IMAGE_NAME }}:${{ github.ref_name }}`
-          files: ${{ env.IMAGE_TAR_NAME }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 提取 Docker 镜像的元数据
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      # 使用 Buildx 构建并推送 Docker 镜像
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
