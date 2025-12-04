@@ -16,14 +16,15 @@ RUN dpkg --add-architecture i386 && \
     apt-get install -y --no-install-recommends \
         software-properties-common wget curl supervisor x11vnc xvfb xterm xfce4 xfce4-terminal \
         python3 ca-certificates locales locales-all fonts-wqy-zenhei fonts-wqy-microhei \
-        fonts-noto-cjk fonts-noto-cjk-extra fonts-noto-color-emoji && \
+        fonts-noto-cjk fonts-noto-cjk-extra fonts-noto-color-emoji dbus dbus-x11 && \
     . /etc/os-release && CODENAME=${UBUNTU_CODENAME:-${VERSION_CODENAME}} && \
     mkdir -pm755 /etc/apt/keyrings && \
     wget -q -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key && \
     wget -q -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/${CODENAME}/winehq-${CODENAME}.sources && \
     apt-get update && \
     apt-get install -y --install-recommends winehq-stable && \
-    # 设置中文locale\n    locale-gen zh_CN.UTF-8 && \
+    # 设置中文locale
+    locale-gen zh_CN.UTF-8 && \
     update-locale LANG=zh_CN.UTF-8 LANGUAGE=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
